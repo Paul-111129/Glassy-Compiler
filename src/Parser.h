@@ -16,10 +16,10 @@ namespace Glassy {
     Grammar:
 
     program    -> statement*
-    statement  -> ((identifier "=" expression) | (exit NUMBER)) ";"
+    statement  -> ((identifier "=" expression) | (exit LIT)) ";"
     expression -> term (("+" | "-") term)*
     term       -> factor (("*" | "/") factor)*
-    factor     -> NUMBER | IDENTIFIER | "(" expression ")"
+    factor     -> LIT | IDENTIFIER | "(" expression ")"
 */
 
 struct ASTNode {
@@ -32,50 +32,57 @@ struct ASTNode {
     }
 };
 
-struct Expression : public ASTNode {};
+struct Expression : ASTNode {};
 
-struct NumberExpr : public Expression {
-    explicit NumberExpr(double val) : value(val) {}
+struct LiteralExpr : Expression {
+    explicit LiteralExpr(double val) : value(val) {}
 
     void print(std::ostream &out) const override { out << value; }
 
     double value;
 };
 
-struct BinaryExpr : public Expression {
+struct BinaryExpr : Expression {
     BinaryExpr(char op, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
-        : op(op),
-          left(std::move(left)),
-          right(std::move(right)) {}
+        : op(op), left(std::move(left)), right(std::move(right)) {}
 
     void print(std::ostream &out) const override { out << *left << ' ' << op << ' ' << *right; }
 
-    char op;
     std::unique_ptr<Expression> left;
+    char op;
     std::unique_ptr<Expression> right;
 };
 
-struct Statement : public ASTNode {
-    virtual void GenerateCode(std::string &out) const = 0;
+struct Statement : ASTNode {
+    virtual void GenerateAsm(std::string &out) const = 0;
 };
 
-struct AssignStmt : public Statement {
+struct AssignStmt : Statement {
     AssignStmt(const std::string &name, std::unique_ptr<Expression> value)
-        : name(name),
-          value(std::move(value)) {}
+        : identifier(name), value(std::move(value)) {}
 
-    void GenerateCode(std::string &out) const override { out += "; assign " + name + "\n"; }
+    void GenerateAsm(std::string &out) const override { out += "; assign " + identifier + "\n"; }
 
-    void print(std::ostream &out) const override { out << name << " = " << *value << ";"; }
+    void print(std::ostream &out) const override { out << identifier << " = " << *value << ";"; }
 
-    std::string name;
+    std::string identifier;
     std::unique_ptr<Expression> value;
 };
 
-struct ExitStmt : public Statement {
+struct DeclarStmt : Statement {
+    DeclarStmt(const std::string &name) : identifier(name) {}
+
+    void GenerateAsm(std::string &out) const override { out += "; declare " + identifier + "\n"; }
+
+    void print(std::ostream &out) const override { out << identifier << ";"; }
+
+    std::string identifier;
+};
+
+struct ExitStmt : Statement {
     ExitStmt(uint8_t value) : exitValue(value) {}
 
-    void GenerateCode(std::string &out) const override {
+    void GenerateAsm(std::string &out) const override {
         out += "mov rax, 60\nmov rdi, " + std::to_string(exitValue) + "\nsyscall\n";
     }
 
@@ -86,7 +93,7 @@ struct ExitStmt : public Statement {
     uint8_t exitValue;
 };
 
-struct Program : public ASTNode {
+struct Program : ASTNode {
     void print(std::ostream &out) const override {
         out << "Program:\n";
         for (const auto &stmt : statements) {
@@ -111,11 +118,30 @@ class Parser {
 
     [[nodiscard]] std::optional<Token> peek(const int offset = 0) const;
     Token consume();
-    bool match(TokenType type);
+
+    template <typename T, typename... Ts>
+    std::optional<T> match(T type, Ts... rest);
+
     Token expect(TokenType type, const char *msg);
 
     const std::vector<Token> m_Tokens;
     size_t m_Index = 0;
 };
+
+template <typename T, typename... Ts>
+inline std::optional<T> Parser::match(T first, Ts... rest) {
+    auto tok = peek();
+    if (!tok || !tok->subType) {
+        return std::nullopt;
+    }
+
+    if (auto val = std::get_if<T>(&*tok->subType)) {
+        if (((*val == first) || ... || (*val == rest))) {
+            consume();
+            return *val;
+        }
+    }
+    return std::nullopt;
+}
 
 } // namespace Glassy

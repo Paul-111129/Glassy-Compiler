@@ -3,5 +3,5 @@ _start:
 ; assign a
 ; assign bc
 mov rax, 60
-mov rdi, 27
+mov rdi, 127
 syscall

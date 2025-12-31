@@ -54,7 +54,7 @@ AllowShortFunctionsOnASingleLine: Inline
 # AlwaysBreakAfterDefinitionReturnType: None
 # AlwaysBreakAfterReturnType: None
 # AlwaysBreakBeforeMultilineStrings: false
-# AlwaysBreakTemplateDeclarations: MultiLine
+AlwaysBreakTemplateDeclarations: Yes
 # AttributeMacros:
 #   - __capability
 # BinPackArguments: true
@@ -91,7 +91,7 @@ AllowShortFunctionsOnASingleLine: Inline
 # BreakConstructorInitializers: BeforeColon
 # BreakInheritanceList: BeforeColon
 # BreakStringLiterals: true
-ColumnLimit: 0
+ColumnLimit: 110
 # CommentPragmas: "^ IWYU pragma:"
 # CompactNamespaces: false
 # ConstructorInitializerIndentWidth: 4

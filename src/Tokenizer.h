@@ -21,15 +21,17 @@ inline void Error(uint16_t line, Args &&...args) {
         LITERAL
     };
 
-    enum Keyword {
+    enum class Keyword {
         EXIT,
+        LET,
         KEYWORD_NB
     };
     inline const std::unordered_map<std::string_view, Keyword> keywords = {
-        {"exit", EXIT}
+        { "exit", Keyword::EXIT },
+        {  "let", Keyword::LET  }
     };
 
-    enum Separator {
+    enum class Separator {
         L_PAREN,
         R_PAREN,
         L_BRACKET,
@@ -40,16 +42,16 @@ inline void Error(uint16_t line, Args &&...args) {
         SEPARATOR_NB
     };
     inline const std::unordered_map<char, Separator> separators = {
-        {'(', L_PAREN},
-        {')', R_PAREN},
-        {'[', L_BRACKET},
-        {']', R_BRACKET},
-        {'{', L_BRACE},
-        {'}', R_BRACE},
-        {';', SEMI}
+        {'(', Separator::L_PAREN},
+        {')', Separator::R_PAREN},
+        {'[', Separator::L_BRACKET},
+        {']', Separator::R_BRACKET},
+        {'{', Separator::L_BRACE},
+        {'}', Separator::R_BRACE},
+        {';', Separator::SEMI}
     };
 
-    enum Operator {
+    enum class Operator {
         PLUS,
         MINUS,
         STAR,
@@ -59,7 +61,7 @@ inline void Error(uint16_t line, Args &&...args) {
         EQUAL,
         OPERATOR_NB
     };
-    inline const char OperatorToChar[OPERATOR_NB] = {
+    inline const char OperatorToChar[int(Operator::OPERATOR_NB)] = {
         '+', 
         '-',
         '*',

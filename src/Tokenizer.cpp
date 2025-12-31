@@ -63,36 +63,36 @@ std::vector<Token> Tokenizer::Tokenize() const {
         switch (c) {
             // operators
             case '+':
-                tokens.emplace_back(PLUS, line);
+                tokens.emplace_back(Operator::PLUS, line);
                 break;
             case '-':
-                tokens.emplace_back(MINUS, line);
+                tokens.emplace_back(Operator::MINUS, line);
                 break;
             case '*':
-                tokens.emplace_back(STAR, line);
+                tokens.emplace_back(Operator::STAR, line);
                 break;
             case '/':
-                tokens.emplace_back(SLASH, line);
+                tokens.emplace_back(Operator::SLASH, line);
                 break;
             case '%':
-                tokens.emplace_back(PERCENT, line);
+                tokens.emplace_back(Operator::PERCENT, line);
                 break;
             case '^':
-                tokens.emplace_back(CARET, line);
+                tokens.emplace_back(Operator::CARET, line);
                 break;
             case '=':
-                tokens.emplace_back(EQUAL, line);
+                tokens.emplace_back(Operator::EQUAL, line);
                 break;
 
             // separators
             case '(':
-                tokens.emplace_back(L_PAREN, line);
+                tokens.emplace_back(Separator::L_PAREN, line);
                 break;
             case ')':
-                tokens.emplace_back(R_PAREN, line);
+                tokens.emplace_back(Separator::R_PAREN, line);
                 break;
             case ';':
-                tokens.emplace_back(SEMI, line);
+                tokens.emplace_back(Separator::SEMI, line);
                 break;
             default:
                 Error(line, "unrecognized token '", c, "'");

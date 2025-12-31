@@ -13,7 +13,7 @@ class Generator {
         std::string result = "global _start\n_start:\n";
 
         for (const auto &stmt : m_Program->statements) {
-            stmt->GenerateCode(result);
+            stmt->GenerateAsm(result);
         }
 
         return result;
