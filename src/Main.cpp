@@ -42,7 +42,7 @@ int main() {
     program->print(std::cout);
 
     Glassy::Generator generator(std::move(program));
-    outputFile << generator.GenerateAssembly();
+    outputFile << generator.GenerateAsm();
 
     std::cin.get();
     return 0;
