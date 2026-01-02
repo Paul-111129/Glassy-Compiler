@@ -5,7 +5,7 @@
 
 namespace Glassy {
 
-struct Generator : public AstVisitor {
+struct Generator {
   public:
     explicit Generator(Program* prog);
     std::string GenerateAsm();
@@ -15,14 +15,17 @@ struct Generator : public AstVisitor {
         size_t stackLocation;
     };
 
-    void visit(const LiteralExpr& node) override;
-    void visit(const IdentifierExpr& node) override;
-    void visit(const BinaryExpr& node) override;
+    template <class... Ts>
+    struct overloaded : Ts... {
+        using Ts::operator()...;
+    };
 
-    void visit(const AssignStmt& stmt) override;
-    void visit(const DeclarStmt& stmt) override;
-    void visit(const ExitStmt& stmt) override;
-    void visit(const Program& prog) override;
+    template <class... Ts>
+    overloaded(Ts...) -> overloaded<Ts...>;
+
+    void generateTerm(const Term* term);
+    void generateExpression(const Expression* expr);
+    void generateStatement(const Statement* stmt);
 
     void push(const std::string& reg) {
         m_Output += "push " + reg + "\n";
@@ -37,7 +40,7 @@ struct Generator : public AstVisitor {
     const Program* m_Program;
     std::string m_Output;
     size_t m_StackSize = 0;
-    std::unordered_map<Identifier, Variable> m_Variables;
+    std::unordered_map<std::string, Variable> m_Variables;
 };
 
 } // namespace Glassy

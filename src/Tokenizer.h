@@ -1,32 +1,19 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
-#include <variant>
 #include <vector>
 
 namespace Glassy {
 
-// clang-format off
-
-enum TokenType { 
+enum TokenType {
     IDENTIFIER,
-    KEYWORD,
-    SEPARATOR,
-    OPERATOR,
-    LITERAL
-};
+    LITERAL,
 
-using Identifier = std::string;
-using Literal = int; // change to double later
-
-enum class Keyword {
     EXIT,
     LET,
-    KEYWORD_NB
-};
 
-enum class Separator {
     L_PAREN,
     R_PAREN,
     L_BRACKET,
@@ -34,10 +21,7 @@ enum class Separator {
     L_BRACE,
     R_BRACE,
     SEMI,
-    SEPARATOR_NB
-};
 
-enum class Operator {
     PLUS,
     MINUS,
     STAR,
@@ -45,13 +29,9 @@ enum class Operator {
     PERCENT,
     CARET,
     EQUAL,
-    OPERATOR_NB
+
+    TOKEN_TYPE_NB
 };
-
-// clang-format on
-
-extern const std::string_view SeparatorToStr[];
-extern const std::string_view OperatorToStr[];
 
 struct SourceLocation {
     uint16_t line = 1;
@@ -59,32 +39,17 @@ struct SourceLocation {
 };
 
 struct Token {
-    Token(std::string_view id, SourceLocation l)
-        : type(IDENTIFIER), location(l), lexeme(id), value(std::string(id)) {}
+    Token(TokenType type, SourceLocation loc) : type(type), location(loc) {}
+    Token(TokenType type, SourceLocation loc, std::string_view v) : type(type), location(loc), value(v) {}
 
-    Token(Keyword kw, SourceLocation l, std::string_view lex)
-        : type(KEYWORD), location(l), lexeme(lex), value(kw) {}
+    const char* ToStr() const { return TokenToStr[type]; }
 
-    Token(Literal v, SourceLocation l, std::string_view lex)
-        : type(LITERAL), location(l), lexeme(lex), value(v) {}
-
-    Token(Operator op, SourceLocation l)
-        : type(OPERATOR), location(l), lexeme(OperatorToStr[size_t(op)]), value(op) {}
-
-    Token(Separator sep, SourceLocation l)
-        : type(SEPARATOR), location(l), lexeme(SeparatorToStr[size_t(sep)]), value(sep) {}
-
-    template <typename T>
-    const T* GetValue() const {
-        return std::get_if<T>(&value);
-    }
+    static constexpr const char* TokenToStr[TOKEN_TYPE_NB] = { "identifier", "literal", "exit", "let", "(",
+        ")", "[", "]", "{", "}", ";", "+", "-", "*", "/", "%", "^", "=" };
 
     TokenType type;
     SourceLocation location;
-
-    std::string_view lexeme;
-
-    std::variant<std::monostate, Identifier, Literal, Keyword, Operator, Separator> value;
+    std::optional<std::string> value = std::nullopt; // literal or identifier
 };
 
 class Tokenizer {
@@ -95,6 +60,5 @@ class Tokenizer {
   private:
     std::string_view m_Src;
 };
-
 
 } // namespace Glassy

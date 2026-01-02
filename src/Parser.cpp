@@ -1,5 +1,6 @@
 #include "Parser.h"
 #include "Error.h"
+#include <charconv>
 
 namespace Glassy {
 
@@ -17,77 +18,68 @@ Program* Parser::ParseProgram() {
     return program;
 }
 
-Expression* Parser::parseFactor() {
+Term* Parser::parseTerm() {
     auto tok = peek();
     if (!tok) {
-        Error(m_Tokens.back().location, "Expected factor");
+        Error(m_Tokens.back().location, "Expected term");
     }
 
-    if (tok->type == LITERAL) {
-        consume();
-        return m_Allocator.alloc<LiteralExpr>(*tok->GetValue<Literal>());
-    } else if (tok->type == IDENTIFIER) {
-        consume();
-        return m_Allocator.alloc<IdentifierExpr>(*tok->GetValue<Identifier>());
+    if (auto t = match(LITERAL)) {
+        auto termLiteral = m_Allocator.alloc<TermLiteral>(t->value.value());
+        return m_Allocator.alloc<Term>(termLiteral);
+    } else if (auto t = match(IDENTIFIER)) {
+        auto termIdentifier = m_Allocator.alloc<TermIdentifier>(t->value.value());
+        return m_Allocator.alloc<Term>(termIdentifier);
     }
 
-    if (match<Separator>(Separator::L_PAREN)) {
+    if (match(L_PAREN)) {
         auto expr = parseExpression();
-        expect(SEPARATOR, "Expected ')'");
-        return expr;
+        expect(R_PAREN, "Expected ')'");
+        auto termParen = m_Allocator.alloc<TermParen>(expr);
+        return m_Allocator.alloc<Term>(termParen);
     }
 
-    Error(tok->location, "Unexpected token in factor");
+    Error(tok->location, "Unexpected token in term");
     return nullptr; // never reached
 }
 
-Expression* Parser::parseTerm() {
-    auto left = parseFactor();
-
-    while (auto op = match<Operator>(Operator::STAR, Operator::SLASH)) {
-        auto right = parseFactor();
-        left = m_Allocator.alloc<BinaryExpr>(*op, left, right);
-    }
-
-    return left;
-}
-
 Expression* Parser::parseExpression() {
-    auto left = parseTerm();
+    auto left = m_Allocator.alloc<Expression>(parseTerm());
 
-    while (auto op = match<Operator>(Operator::PLUS, Operator::MINUS)) {
-        auto right = parseTerm();
-        left = m_Allocator.alloc<BinaryExpr>(*op, left, right);
+    while (auto tok = match(PLUS, MINUS, STAR, SLASH)) {
+        auto right = m_Allocator.alloc<Expression>(parseTerm());
+        left->expr = m_Allocator.alloc<ExprBinary>(tok->ToStr()[0], left, right);
     }
 
     return left;
 }
 
 Statement* Parser::parseStatement() {
-    if (match<Keyword>(Keyword::EXIT)) {
+    if (match(EXIT)) {
         auto expr = parseExpression();
+        expect(SEMI, "Expected ';'");
 
-        expect(SEPARATOR, "Expected ';'");
+        auto stmtExit = m_Allocator.alloc<StmtExit>(expr);
+        return m_Allocator.alloc<Statement>(stmtExit);
+    } else if (match(LET)) {
+        std::string name = *expect(IDENTIFIER, "Expected identifer").value;
 
-        return m_Allocator.alloc<ExitStmt>(expr);
-    } else if (match<Keyword>(Keyword::LET)) {
-        Identifier name = *expect(IDENTIFIER, "Expected identifer").GetValue<Identifier>();
-
-        expect(OPERATOR, "Expected '='");
+        expect(EQUAL, "Expected '='");
         auto expr = parseExpression();
-        expect(SEPARATOR, "Expected ';'");
+        expect(SEMI, "Expected ';'");
 
-        return m_Allocator.alloc<DeclarStmt>(name, expr);
+        auto stmtLet = m_Allocator.alloc<StmtLet>(name, expr);
+        return m_Allocator.alloc<Statement>(stmtLet);
     }
 
-    Identifier name = *expect(IDENTIFIER, "Expected identifier").GetValue<Identifier>();
+    std::string name = *expect(IDENTIFIER, "Expected identifier").value;
 
-    expect(OPERATOR, "Expected '='");
-    
+    expect(EQUAL, "Expected '='");
     auto expr = parseExpression();
-    expect(SEPARATOR, "Expected ';");
+    expect(SEMI, "Expected ';");
 
-    return m_Allocator.alloc<AssignStmt>(name, expr);
+    auto stmtAssign = m_Allocator.alloc<StmtAssign>(name, expr);
+    return m_Allocator.alloc<Statement>(stmtAssign);
 }
 
 } // namespace Glassy

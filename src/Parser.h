@@ -3,130 +3,77 @@
 #include "Arena.h"
 #include "Error.h"
 #include "Tokenizer.h"
-
 #include <optional>
 #include <ostream>
+#include <variant>
 
 namespace Glassy {
 
-/*
-    TODO:
-    - unary operators
-    - variable expressions
-*/
-
-struct LiteralExpr;
-struct IdentifierExpr;
-struct BinaryExpr;
-struct AssignStmt;
-struct DeclarStmt;
-struct ExitStmt;
-struct Program;
-
-struct AstVisitor {
-    virtual void visit(const LiteralExpr& node) = 0;
-    virtual void visit(const IdentifierExpr& node) = 0;
-    virtual void visit(const BinaryExpr& node) = 0;
-    virtual void visit(const AssignStmt& node) = 0;
-    virtual void visit(const DeclarStmt& node) = 0;
-    virtual void visit(const ExitStmt& node) = 0;
-    virtual void visit(const Program& node) = 0;
-
-    virtual ~AstVisitor() = default;
-};
+struct Expression;
 
 struct ASTNode {
     ASTNode() = default;
     virtual ~ASTNode() = default;
     ASTNode(const ASTNode&) = delete;
     ASTNode& operator=(const ASTNode&) = delete;
-
-    virtual void print(std::ostream& out) const = 0;
-    virtual void accept(AstVisitor& visitor) const = 0;
-
-    friend std::ostream& operator<<(std::ostream& os, const ASTNode& node) {
-        node.print(os);
-        return os;
-    }
 };
 
-struct Expression : ASTNode {
-    virtual ~Expression() = default;
+struct TermLiteral : ASTNode {
+    explicit TermLiteral(std::string_view l) : literal(l) {}
+
+    std::string literal;
+};
+struct TermIdentifier : ASTNode {
+    explicit TermIdentifier(std::string_view ident) : identifier(ident) {}
+
+    std::string identifier;
+};
+struct TermParen : ASTNode {
+    explicit TermParen(Expression* expr) : expr(expr) {}
+    Expression* expr;
+};
+struct Term : ASTNode {
+    explicit Term(std::variant<TermLiteral*, TermIdentifier*, TermParen*> term) : term(term) {}
+
+    std::variant<TermLiteral*, TermIdentifier*, TermParen*> term;
 };
 
-struct LiteralExpr : Expression {
-    explicit LiteralExpr(Literal val) : value(val) {}
+struct ExprBinary : ASTNode {
+    ExprBinary(char op, Expression* lhs, Expression* rhs) : op(op), left(lhs), right(rhs) {}
 
-    void print(std::ostream& out) const override { out << value; }
-    void accept(AstVisitor& visitor) const override { visitor.visit(*this); }
-
-    Literal value;
-};
-
-struct IdentifierExpr : Expression {
-    explicit IdentifierExpr(std::string_view id) : name(id) {}
-
-    void print(std::ostream& out) const override { out << name; }
-    void accept(AstVisitor& visitor) const override { visitor.visit(*this); }
-
-    Identifier name;
-};
-
-struct BinaryExpr : Expression {
-    BinaryExpr(Operator op, Expression* lhs, Expression* rhs) : op(op), left(lhs), right(rhs) {}
-
-    void print(std::ostream& out) const override {
-        out << *left << ' ' << OperatorToStr[size_t(op)][0] << ' ' << *right;
-    }
-    void accept(AstVisitor& visitor) const override { visitor.visit(*this); }
-
-    Operator op;
+    char op;
     Expression* left;
     Expression* right;
 };
+struct Expression : ASTNode {
+    explicit Expression(std::variant<ExprBinary*, Term*> expr) : expr(expr) {}
 
+    std::variant<ExprBinary*, Term*> expr;
+};
+
+struct StmtExit : ASTNode {
+    StmtExit(Expression* e) : expr(e) {}
+
+    Expression* expr;
+};
+struct StmtAssign : ASTNode {
+    StmtAssign(std::string_view name, Expression* expr) : identifier(name), expr(expr) {}
+
+    std::string identifier;
+    Expression* expr;
+};
+struct StmtLet : ASTNode {
+    StmtLet(std::string_view name, Expression* expr) : identifier(name), expr(expr) {}
+
+    std::string identifier;
+    Expression* expr;
+};
 struct Statement : ASTNode {
-    virtual ~Statement() = default;
-};
-
-struct AssignStmt : Statement {
-    AssignStmt(std::string_view name, Expression* expr) : identifier(name), expr(expr) {}
-
-    void print(std::ostream& out) const override { out << identifier << " = " << *expr << ";"; }
-    void accept(AstVisitor& visitor) const override { visitor.visit(*this); }
-
-    Identifier identifier;
-    Expression* expr;
-};
-
-struct DeclarStmt : Statement {
-    DeclarStmt(std::string_view name, Expression* expr) : identifier(name), expr(expr) {}
-
-    void print(std::ostream& out) const override { out << "let " << identifier << " = " << *expr << ";"; }
-    void accept(AstVisitor& visitor) const override { visitor.visit(*this); }
-
-    Identifier identifier;
-    Expression* expr;
-};
-
-struct ExitStmt : Statement {
-    ExitStmt(Expression* e) : expr(e) {}
-
-    void print(std::ostream& out) const override { out << "exit " << *expr << ";"; }
-    void accept(AstVisitor& visitor) const override { visitor.visit(*this); }
-
-    Expression* expr;
+    explicit Statement(std::variant<StmtExit*, StmtAssign*, StmtLet*> stmt) : stmt(stmt) {}
+    std::variant<StmtExit*, StmtAssign*, StmtLet*> stmt;
 };
 
 struct Program : ASTNode {
-    void print(std::ostream& out) const override {
-        out << "Program:\n";
-        for (const auto& stmt : statements) {
-            out << *stmt << '\n';
-        }
-    }
-    void accept(AstVisitor& visitor) const override { visitor.visit(*this); }
-
     std::vector<Statement*> statements;
 };
 
@@ -136,8 +83,7 @@ class Parser {
     Program* ParseProgram();
 
   private:
-    Expression* parseFactor();
-    Expression* parseTerm();
+    Term* parseTerm();
     Expression* parseExpression();
     Statement* parseStatement();
 
@@ -155,19 +101,17 @@ class Parser {
         return m_Tokens[m_Index++];
     }
 
-    template <typename T, typename... Ts>
-    std::optional<T> match(T first, Ts... rest) {
+    template <typename... Args>
+    std::optional<Token> match(TokenType first, Args&&... rest) {
         auto tok = peek();
         if (!tok) {
             return std::nullopt;
         }
 
-        if (auto val = tok->GetValue<T>()) {
-            if (((*val == first) || ... || (*val == rest))) {
-                consume();
-                return *val;
-            }
+        if (((tok->type == first) || ... || (tok->type == rest))) {
+            return consume();
         }
+
         return std::nullopt;
     }
 
