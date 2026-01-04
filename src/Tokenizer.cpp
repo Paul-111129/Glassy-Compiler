@@ -69,6 +69,8 @@ std::vector<Token> Tokenizer::Tokenize(std::string_view src) {
             // separators
             case '(': tokens.emplace_back(L_PAREN, startLoc); break;
             case ')': tokens.emplace_back(R_PAREN, startLoc); break;
+            case '{': tokens.emplace_back(L_BRACE, startLoc); break;
+            case '}': tokens.emplace_back(R_BRACE, startLoc); break;
             case ';': tokens.emplace_back(SEMI, startLoc); break;
 
             // comments

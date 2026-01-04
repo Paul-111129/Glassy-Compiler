@@ -4,7 +4,7 @@
 #include "Parser.h"
 
 namespace Glassy {
-   
+
 struct Generator {
   public:
     explicit Generator(Program* prog);
@@ -37,10 +37,23 @@ struct Generator {
         m_StackSize--;
     }
 
+    Variable* lookup(const std::string& name) {
+        for (auto it = m_Scopes.rbegin(); it != m_Scopes.rend(); ++it) {
+            auto found = it->find(name);
+            if (found != it->end()) {
+                return &found->second;
+            }
+        }
+        return nullptr;
+    }
+
     const Program* m_Program;
     std::string m_Output;
     size_t m_StackSize = 0;
-    std::unordered_map<std::string, Variable> m_Variables;
+
+    // std::unordered_map<std::string, Variable> m_Variables;
+
+    std::vector<std::unordered_map<std::string, Variable>> m_Scopes;
 };
 
 } // namespace Glassy

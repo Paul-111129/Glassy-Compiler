@@ -78,6 +78,11 @@ Statement* Parser::parseStatement() {
 
         StmtDeclar* stmt = m_Allocator.alloc<StmtDeclar>(name, expr);
         return m_Allocator.alloc<Statement>(stmt);
+    } else if (match(L_BRACE)) {
+        Scope* scope = parseScope();
+        return m_Allocator.alloc<Statement>(scope);
+    } else if (match(R_BRACE)) {
+        return nullptr; // special tag for scope
     }
 
     std::string name = *expect(IDENTIFIER).value;
@@ -88,6 +93,14 @@ Statement* Parser::parseStatement() {
 
     StmtAssign* stmt = m_Allocator.alloc<StmtAssign>(name, expr);
     return m_Allocator.alloc<Statement>(stmt);
+}
+
+Scope* Parser::parseScope() {
+    Scope* scope = m_Allocator.alloc<Scope>();
+    while (Statement* stmt = parseStatement()) {
+        scope->statements.push_back(stmt);
+    }
+    return scope;
 }
 
 } // namespace Glassy

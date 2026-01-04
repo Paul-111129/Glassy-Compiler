@@ -13,8 +13,6 @@ enum TokenType {
 
     L_PAREN,
     R_PAREN,
-    L_BRACKET,
-    R_BRACKET,
     L_BRACE,
     R_BRACE,
     SEMI,
@@ -38,7 +36,7 @@ struct SourceLocation {
 };
 
 constexpr std::string_view TokenToStr[TOKEN_TYPE_NB] = { "identifier", "literal", "exit", "var", "(", ")",
-    "[", "]", "{", "}", ";", "+", "-", "*", "/", "%", "^", "=", "eof" };
+    "{", "}", ";", "+", "-", "*", "/", "%", "^", "=", "eof" };
 
 constexpr std::string_view ToStr(TokenType type) {
     return TokenToStr[type];
