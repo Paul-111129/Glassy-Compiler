@@ -1,8 +1,6 @@
 #pragma once
 
-#include "pch.h"
 #include "ast.h"
-#include "lexer.h"
 #include "utils.h"
 
 namespace Compiler {
@@ -19,31 +17,21 @@ class Parser {
     Statement* ParseStatement();
     Block* ParseBlock();
 
-    const Token& Peek(int offset = 0) const { return m_Tokens[m_Index + offset]; }
-
     const Token& Consume() { return m_Tokens[m_Index++]; }
 
     template <typename... Args>
     bool Match(TokenType first, Args... rest) {
-        const Token& tok = Peek();
-        if (((tok.Type == first) || ... || (tok.Type == rest))) {
+        if (((m_Tokens[m_Index].Type == first) || ... || (m_Tokens[m_Index].Type == rest))) {
             return true;
         }
         return false;
     }
 
-    Token Expect(TokenType type) {
-        const Token& tok = Peek();
-        if (tok.Type != type) {
-            Error(tok.Location, std::format("Expected '{}'", TokenToStr(type)));
-        }
-        return Consume();
-    }
-
-    ArenaAllocator m_Allocator;
+    Token Expect(TokenType type);
 
     const std::vector<Token> m_Tokens;
     size_t m_Index = 0;
+    ArenaAllocator m_Allocator;
 };
 
 } // namespace Compiler

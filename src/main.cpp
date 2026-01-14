@@ -1,9 +1,12 @@
-#include "pch.h"
 #include "generator.h"
 #include "lexer.h"
 #include "parser.h"
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <iostream>
 
-int main(int argc, const char* argv[]) {
+int main() {
     std::filesystem::path inputFilePath = "test/main.c";
     std::filesystem::path outputFilePath = "test/main.asm";
 
@@ -17,7 +20,7 @@ int main(int argc, const char* argv[]) {
     inputFile.close();
 
     const auto tokens = Compiler::Lex(sourceCode);
-    for (int i = 0; i < tokens.size(); ++i) {
+    for (size_t i = 0; i < tokens.size(); ++i) {
         std::cout << std::format("{}: {}\n", i + 1, Compiler::TokenToStr(tokens[i].Type));
     }
 

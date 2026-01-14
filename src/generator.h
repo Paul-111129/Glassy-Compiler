@@ -1,7 +1,8 @@
 #pragma once
 
-#include "pch.h"
-#include "parser.h"
+#include "ast.h"
+#include "utils.h"
+#include <unordered_map>
 
 namespace Compiler {
 

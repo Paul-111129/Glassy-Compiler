@@ -1,6 +1,11 @@
 #pragma once
 
-#include "pch.h"
+#include <array>
+#include <cstdint>
+#include <optional>
+#include <vector>
+#include <string>
+#include <string_view>
 
 namespace Compiler {
 

@@ -1,18 +1,15 @@
 #pragma once
 
-#include "pch.h"
 #include "lexer.h"
+#include <cstddef>
+#include <new>
 
 namespace Compiler {
 
 class ArenaAllocator {
   public:
-    explicit ArenaAllocator(size_t chunkSize) : m_Size(chunkSize) {
-        m_Buffer = new std::byte[m_Size];
-        m_Offset = m_Buffer;
-    }
-
-    ~ArenaAllocator() { delete[] m_Buffer; }
+    explicit ArenaAllocator(size_t chunkSize);
+    ~ArenaAllocator();
 
     ArenaAllocator(const ArenaAllocator&) = delete;
     ArenaAllocator& operator=(const ArenaAllocator&) = delete;
@@ -35,16 +32,7 @@ class ArenaAllocator {
     std::byte* m_Offset;
 };
 
-inline void Error(SourceLocation loc, const std::string& msg) {
-    std::cerr << std::format("{} [Ln {}, Col {}]\n", msg, loc.Line, loc.Column);  
-    std::cin.get();
-    std::exit(1);
-}
-
-inline void Error(const std::string& msg) {
-    std::cerr << msg << "\n";
-    std::cin.get();
-    std::exit(1);
-}
+void Error(SourceLocation loc, const std::string& msg);
+void Error(const std::string& msg);
 
 } // namespace Compiler

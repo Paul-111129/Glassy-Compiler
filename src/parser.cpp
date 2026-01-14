@@ -1,5 +1,5 @@
-#include "pch.h"
 #include "parser.h"
+#include <format>
 
 namespace Compiler {
 
@@ -12,9 +12,7 @@ Program* Parser::ParseProgram() {
 }
 
 Factor* Parser::ParseFactor() {
-    const Token& tok = Peek();
-
-    if (tok.Type == END_OF_FILE) {
+    if (Match(END_OF_FILE)) {
         Error(m_Tokens.back().Location, "Expected factor");
     } else if (Match(LITERAL)) {
         return m_Allocator.alloc<Factor>(std::stoi(*Consume().Value));
@@ -27,7 +25,7 @@ Factor* Parser::ParseFactor() {
         return m_Allocator.alloc<Factor>(expr);
     }
 
-    Error(tok.Location, "Unexpected token in factor");
+    Error("Unexpected token in factor");
     return nullptr; // never reached
 }
 
@@ -92,7 +90,7 @@ Block* Parser::ParseBlock() {
         BlockItem* item;
         if (Match(INT)) {
             Consume();
-            std::string_view name = *Expect(IDENTIFIER).Value;
+            std::string name = *Expect(IDENTIFIER).Value;
             Expect(SEMICOLON);
             Declaration* decl = m_Allocator.alloc<Declaration>(name);
 
@@ -104,6 +102,13 @@ Block* Parser::ParseBlock() {
     }
     Expect(RBRACE);
     return block;
+}
+
+Token Parser::Expect(TokenType type) {
+    if (m_Tokens[m_Index].Type != type) {
+        Error(m_Tokens[m_Index].Location, std::format("Expected '{}'", TokenToStr(type)));
+    }
+    return Consume();
 }
 
 } // namespace Compiler

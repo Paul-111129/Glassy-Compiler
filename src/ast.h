@@ -1,5 +1,7 @@
 #pragma once
-#include "pch.h"
+
+#include "lexer.h"
+#include <variant>
 
 namespace Compiler {
 
